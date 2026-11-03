@@ -1,0 +1,10 @@
+# Direct runtime dependencies inferred from the supplied imports.
+# Versions and model compatibility have not been validated in this source export.
+Flask
+flask-cors
+numpy
+opencv-python
+insightface
+onnxruntime
+rembg
+pyserial

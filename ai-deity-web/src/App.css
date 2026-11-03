@@ -1,0 +1,840 @@
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+  overflow: hidden;
+}
+
+.app--allow-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.app--clickable {
+  cursor: pointer;
+}
+
+.page-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.4s ease-in-out;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.page-img.fade-in {
+  opacity: 1;
+}
+
+.page-img.fade-out {
+  opacity: 0;
+}
+
+/* 用户输入1 — 表单叠加层 */
+.input-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.4s ease-in-out;
+  pointer-events: none;
+}
+
+.input-overlay.fade-in {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.input-overlay.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.input-field {
+  position: absolute;
+  width: 37vw;
+  height: 5.4vh;
+  left: 36vw;
+  border: 3px solid rgba(70, 105, 160, 0.75);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.35);
+  padding: 0 1.6vw;
+  font-family: "Press Start 2P", monospace;
+  font-size: 0.9vw;
+  color: #1a3d7a;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.input-field::placeholder {
+  color: rgba(80, 100, 140, 0.45);
+}
+
+.input-field--name {
+  top: 42vh;
+}
+
+.input-field--age {
+  top: 52vh;
+}
+
+.input-field--occupation {
+  top: 62vh;
+}
+
+/* 用户输入2 — 摄像头叠加层 */
+.camera-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.4s ease-in-out;
+  pointer-events: none;
+}
+
+.camera-overlay.fade-in {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.camera-overlay.fade-out {
+  opacity: 0;
+}
+
+.camera-video {
+  position: absolute;
+  top: 20%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(10vw, 360px);
+  height: min(10vw, 360px);
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 0 40px rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.camera-denied {
+  font-family: "Press Start 2P", monospace;
+  font-size: clamp(8px, 1.2vw, 14px);
+  line-height: 1.8;
+  color: #1a3d7a;
+  text-align: center;
+}
+
+.camera-denied-wrap {
+  position: absolute;
+  top: 52%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  max-width: 70%;
+}
+
+.camera-status {
+  position: absolute;
+  top: 52%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: "Press Start 2P", monospace;
+  font-size: clamp(8px, 1.1vw, 13px);
+  line-height: 1.8;
+  color: #1a3d7a;
+  text-align: center;
+  animation: camera-status-blink 1.2s ease-in-out infinite;
+}
+
+@keyframes camera-status-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.camera-retry-btn {
+  font-family: "Press Start 2P", monospace;
+  font-size: clamp(7px, 0.9vw, 11px);
+  color: #fff;
+  background: #2f5795;
+  border: 2px solid #1a3d7a;
+  border-radius: 999px;
+  padding: 8px 24px;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.camera-retry-btn:hover,
+.camera-skip-btn:hover {
+  transform: scale(1.06);
+  opacity: 0.9;
+}
+
+.camera-btns {
+  display: flex;
+  gap: 12px;
+}
+
+.camera-skip-btn {
+  font-family: "Press Start 2P", monospace;
+  font-size: clamp(7px, 0.9vw, 11px);
+  color: #2f5795;
+  background: transparent;
+  border: 2px solid #2f5795;
+  border-radius: 999px;
+  padding: 8px 24px;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+/* ===== 摄像头拍摄按钮 & 融合结果 ===== */
+.camera-canvas {
+  display: none;
+}
+
+.camera-capture-btn {
+  position: absolute;
+  bottom: 6vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 4px solid rgba(255, 255, 255, 0.95);
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+  font-size: 28px;
+  cursor: pointer;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease, background 0.15s ease;
+  animation: capture-pulse 2s ease-in-out infinite;
+}
+
+@keyframes capture-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(255,255,255,0.3); }
+  50% { box-shadow: 0 0 24px rgba(255,255,255,0.7); }
+}
+
+.camera-capture-btn:hover {
+  transform: translateX(-50%) scale(1.12);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.camera-merge-error {
+  position: absolute;
+  bottom: 4vh;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: "Press Start 2P", monospace;
+  font-size: 9px;
+  color: #d44;
+  text-align: center;
+  z-index: 40;
+}
+
+.camera-merged-wrap {
+  position: absolute;
+  top: 52%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.camera-merged-img {
+  width: min(32vw, 360px);
+  height: min(32vw, 360px);
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 0 40px rgba(255, 255, 255, 0.35);
+}
+
+.camera-merged-label {
+  font-family: "Press Start 2P", monospace;
+  font-size: clamp(8px, 1vw, 12px);
+  color: #2f5795;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6);
+}
+
+.camera-merging-wrap {
+  position: absolute;
+  top: 52%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* 引导页2 — 问题按钮容器 */
+.guide2-buttons {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  opacity: 0;
+  transition: opacity 0.4s ease-in-out;
+  pointer-events: none;
+}
+
+.guide2-buttons.fade-in {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.guide2-buttons.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* 引导页2 — 问题按钮 */
+.guide2-btn {
+  position: absolute;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 100%;
+  display: block;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.guide2-btn:hover {
+  transform: scale(1.02);
+  opacity: 0.95;
+}
+
+.guide2-btn:focus-visible {
+  outline: 2px solid #1a3d7a;
+  outline-offset: 2px;
+}
+
+.guide2-btn--1 {
+  top: 18vh;
+  left: 8vw;
+  width: 42vw;
+}
+
+.guide2-btn--2 {
+  top: 38vh;
+  left: 50vw;
+  width: 34vw;
+}
+
+.guide2-btn--3 {
+  top: 52vh;
+  left: 18vw;
+  width: 32vw;
+}
+
+.guide2-btn--4 {
+  top: 64vh;
+  left: 46vw;
+  width: 44vw;
+}
+
+.confirm-btn {
+  position: absolute;
+  top: 62vh;
+  left: 78vw;
+  width: 3vw;
+  height: 3vw;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  z-index: 30;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.confirm-btn img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+.confirm-btn:hover:not(:disabled) {
+  transform: scale(1.1);
+  opacity: 0.85;
+}
+
+.confirm-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.confirm-btn--loading {
+  animation: confirm-pulse 0.8s ease-in-out infinite;
+}
+
+@keyframes confirm-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+.view-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16vw;
+  transform: translate(-50%, -50%);
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  z-index: 50;
+}
+
+.view-btn img {
+  width: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+.view-btn:hover {
+  transform: translate(-50%, -50%) scale(1.04);
+  opacity: 0.92;
+}
+
+/* ===== Archive Page (pageIndex === 9) ===== */
+/* 父容器，底图在文档流中撑开高度 */
+.archive-scroll-page {
+  position: relative;
+  width: 100vw;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  background-color: transparent;
+}
+
+.archive-scroll-page.fade-in {
+  opacity: 1;
+}
+
+.archive-scroll-page.fade-out {
+  opacity: 0;
+}
+
+/* 底图在文档流中，宽度铺满，高度按原图比例自适应，撑开页面可滚动 */
+.archive-bg {
+  display: block;
+  width: 100vw;
+  height: auto;
+}
+
+/* 覆盖层 — 绝对定位在底图上方，尺寸跟随底图高度 */
+.archive-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* 抠图人像（PNG 透明）— 绝对定位到右侧 */
+.fused-profile-img {
+  position: absolute;
+  top: 3%;
+  right: 4%;
+  width: 45%;
+  height: auto;
+  object-fit: contain;
+  z-index: 10;
+}
+
+.archive-text-layer,
+.archive-envelope-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.archive-text-layer {
+  z-index: 20;
+  pointer-events: none;
+}
+
+.archive-envelope-layer {
+  z-index: 30;
+  pointer-events: none;
+}
+
+.archive-dynamic {
+  position: absolute;
+  font-family: "Press Start 2P", monospace;
+  color: #2f5795;
+  font-size: clamp(18px, 1vw, 11px);
+  line-height: 1.6;
+  white-space: nowrap;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.55);
+}
+
+/* ===== 以下为可调坐标，用 % 相对于底图高度定位 ===== */
+
+/* ---- 个人信息区 ---- */
+.archive-name-value         { top: 5.1%;  left: 23%; outline: 1px dashed red; }
+.archive-age-value          { top: 6.3%;  left: 23%; outline: 1px dashed red; }
+.archive-occupation-value   { top: 7.5%;  left: 23%; outline: 1px dashed red; }
+.archive-classification-value { top: 8.6%; left: 23%; outline: 1px dashed red; }
+.archive-future-value       { top: 9.7%; left: 23%; outline: 1px dashed red; }
+/* ---- 核心价值 ---- */
+.archive-core-values {
+  top: 46%;
+  left: 53%;
+  width: 24%;
+  white-space: normal;
+  outline: 1px dashed orange;
+}
+.archive-core-values div {
+  margin-bottom: 5px;
+}
+
+/* ---- 人群关键词 ---- */
+.archive-crowd-keyword-1 { top: 59%; left: 12%; outline: 1px dashed green; }
+.archive-crowd-keyword-2 { top: 60%; left: 67%; outline: 1px dashed green; }
+.archive-crowd-keyword-3 { top: 66%; left: 54%; outline: 1px dashed green; }
+
+/* ---- 推荐方向 ---- */
+.archive-recommendation-1 { top: 77.5%; left: 10%; outline: 1px dashed blue; }
+.archive-recommendation-2 { top: 77.5%; left: 40%; outline: 1px dashed blue; }
+.archive-recommendation-3 { top: 77.5%; left: 80%; outline: 1px dashed blue; }
+
+/* ---- 神谕寄语 ---- */
+.archive-deity-message {
+  top: 89%;
+  left: 6%;
+  width: 43%;
+  white-space: normal;
+  line-height: 1.6;
+  outline: 1px dashed magenta;
+}
+
+/* ---- 查看按钮 ---- */
+.archive-view-btn {
+
+    position: absolute;
+    top: 95%;
+    left: 6%;
+    width: 14%;
+    height: auto;
+    padding: 0;
+    margin: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    box-shadow: none;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+    z-index: 25;
+    pointer-events: auto;
+  }
+  .archive-view-btn img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border: none;
+    outline: none;
+    background: transparent;
+    box-shadow: none;
+    pointer-events: none;
+  }
+  .archive-view-btn:focus,
+.archive-view-btn:focus-visible,
+.archive-view-btn:active {
+  border: none;
+  outline: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.archive-view-btn.loading {
+  cursor: wait;
+  animation: print-pulse 0.8s ease-in-out infinite;
+}
+
+.archive-view-btn.done {
+  cursor: default;
+  animation: none;
+}
+
+.archive-view-btn.done img {
+  opacity: 0.6;
+}
+
+@keyframes print-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(0.95); }
+}
+
+/* ---- 信封 ---- */
+.envelope-btn {
+  position: absolute;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.envelope-btn img {
+  width: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+.envelope-btn-1 { top: 18%; left: 30%; width: 40%; z-index: 3; }
+.envelope-btn-2 { top: 17%; left: 43%; width: 40%; z-index: 2; }
+.envelope-btn-3 { top: 16%; left: 56%; width: 40%; z-index: 1; }
+
+/* ===== Archive Detail Pages (pageIndex === 10/11/12) ===== */
+.archive-detail-page {
+  position: relative;
+  width: 100%;
+  max-width: 481px;
+  margin: 0 auto;
+  z-index: 10;
+}
+
+.archive-detail-page.fade-in {
+  opacity: 1;
+}
+
+.archive-detail-page.fade-out {
+  opacity: 0;
+}
+
+.archive-detail-bg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.archive-stage-text {
+  position: absolute;
+  top: 30%;
+  left: 11%;
+  width: 78%;
+  z-index: 20;
+  font-family: "Press Start 2P", monospace;
+  color: #2f5795;
+  text-align: center;
+  pointer-events: none;
+}
+
+.archive-stage-period {
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 12px;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.5);
+}
+
+.archive-stage-title {
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 18px;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.5);
+}
+
+.archive-stage-paragraph {
+  font-size: 12px;
+  line-height: 2.0;
+  text-align: left;
+  white-space: normal;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.5);
+}
+.archive-detail-scroll-page {
+  width: 100%;
+  min-height: 100vh;
+  overflow-y: auto;
+  background: #dce6f3;
+}
+
+.archive-detail-scroll-page.fade-in {
+  opacity: 1;
+}
+
+.archive-detail-scroll-page.fade-out {
+  opacity: 0;
+}
+
+.archive-detail-canvas {
+  position: relative;
+  width: min(100vw, 481px);
+  margin: 0 auto;
+  background: #dce6f3;
+}
+
+.archive-detail-bg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.archive-stage-text {
+  position: absolute;
+  top: 30%;
+  left: 10%;
+  width: 80%;
+  z-index: 20;
+  font-family: "Press Start 2P", monospace;
+  color: #2f5795;
+  text-align: center;
+  pointer-events: none;
+}
+
+.archive-stage-period {
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.archive-stage-title {
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 18px;
+}
+
+.archive-stage-paragraph {
+  font-size: 12px;
+  line-height: 2.0;
+  text-align: left;
+  white-space: normal;
+}
+/* ---- 档案页文字统一左对齐 ---- */
+.archive-text-layer,
+.archive-text-layer *,
+.archive-dynamic,
+.archive-core-values,
+.archive-crowd-keyword-1,
+.archive-crowd-keyword-2,
+.archive-crowd-keyword-3,
+.archive-recommendation-1,
+.archive-recommendation-2,
+.archive-recommendation-3,
+.archive-deity-message,
+.archive-detail-page,
+.archive-detail-page *,
+.archive-stage,
+.archive-stage *,
+.archive-stage-title,
+.archive-stage-period,
+.archive-stage-paragraph {
+  text-align: left !important;
+}
+
+/* ===== Archive Stage Modal ===== */
+.archive-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(215, 225, 240, 0.25);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+
+.archive-stage-modal {
+  position: relative;
+  width: min(72vw, 760px);
+  max-height: 86vh;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  animation: archiveModalIn 0.35s ease-out both;
+}
+
+.archive-stage-modal-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: fill;
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+  z-index: 0;
+}
+
+.archive-stage-modal-content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-height: 86vh;
+  overflow-y: auto;
+  padding: 9% 10% 10% 10%;
+  font-family: "Press Start 2P", monospace;
+  color: #2f5795;
+  text-align: center;
+  font-size: 14px;
+  line-height: 2;
+  box-sizing: border-box;
+}
+
+.archive-stage-period {
+  font-size: 14px;
+  line-height: 2;
+  margin: 0 0 1.2rem 0;
+  text-align: center;
+}
+
+.archive-stage-title {
+  font-size: 14px;
+  line-height: 2;
+  margin: 0 0 2rem 0;
+  text-align: center;
+}
+
+.archive-stage-paragraph {
+  font-size: 14px;
+  line-height: 2;
+  letter-spacing: 0.02em;
+  margin: 0 auto;
+  max-width: 92%;
+  white-space: normal;
+  text-align: center;
+}
+
+@keyframes archiveModalIn {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
